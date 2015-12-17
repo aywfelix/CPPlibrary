@@ -84,9 +84,28 @@ CondVar::~CondVar()
     MutexErr("destroy cond", pthread_cond_destroy(&m_cond));  
 }  
   
-void CondVar::Wait()  
-{  
-    MutexErr("wait cond", pthread_cond_wait(&m_cond, &m_mu->m_mutex));  
+void CondVar::Wait(int milliseconds = 0)  
+{
+	if(milliseconds == 0)
+	{
+		MutexErr("wait cond", pthread_cond_wait(&m_cond, &m_mu->m_mutex));  		
+	}
+	else{
+		struct timeval curtime;
+
+		struct timespec abstime;
+		gettimeofday(&curtime, NULL);
+
+		long long us = (static_cast<long long>(curtime.tv_sec) *
+					  static_cast<long long>(1000000) +
+					  static_cast<long long>(curtime.tv_usec) +
+					  static_cast<long long>(milliseconds) *
+					  static_cast<long long>(1000));
+
+		abstime.tv_sec = static_cast<int>(us / static_cast<long long>(1000000));
+		abstime.tv_nsec = static_cast<int>(us % static_cast<long long>(1000000)) * 1000;
+		MutexErr("wait time cond", pthread_cond_wait(&m_cond, &m_mu->m_mutex, &abstime));
+	}
 }  
   
 void CondVar::Signal()  

@@ -67,6 +67,8 @@ typedef unsigned int        uintptr_t;
 
 #define CLR(a, b) memset((a), 0, (b))  
 const static int MAX_LEN = 256;
+#define SYSSLEEP(stop, interval) ({int count=interval*5; while(count-->0 && !stop) usleep(200000);})
+
 //the log level
 enum { LOG_ERROR = 0, LOG_INFO, LOG_WARN, LOG_DEBUG};
 
