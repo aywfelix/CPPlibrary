@@ -29,6 +29,7 @@ public:
 	static void writePidFile(std::string& pidfile);
 	static bool isExist(std::string& pidfile);
 	static bool setResource();
+	static int getpagesize()
 };
 
 int CSys::startDeamon(std::string& pidfile)
@@ -102,3 +103,18 @@ bool CSys::setResource()
 	}
 	return ret;
 }
+
+//获取系统页面大小
+int CSys::getpagesize()
+{
+	return ::getpagesize();
+}
+
+
+
+
+
+
+
+
+

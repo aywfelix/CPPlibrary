@@ -16,12 +16,15 @@ public:
 	CTime(std::string tim);
     virtual ~CTime();
 	std::string getTime();
+	long long getTime();
 	std::string getShortTime();
-friend std::ostream& operator<<(std::ostream& os, CTime& tim);
+
+	char* timeToStr(char *dest);
 	void Start(){ m_start = currentMillions();}
 	void Stop(){ m_end = currentMillions();}
 	void Reset() {m_start = m_end = 0;}
 	void costTime();
+friend std::ostream& operator<<(std::ostream& os, CTime& tim);
 private:
 	unsigned long currentMillions()
 	{
@@ -68,6 +71,26 @@ std::string CTime::getTime()
 	return m_time;
 }
 
+long long CTime::getTime()
+{
+	struct timeval tim;
+	gettimeofday(&tim, NULL);
+	return (static_cast<long long>(tim.tv_sec*1000000 + tim.tv_usec));
+}
+char* CTime::timeToStr(char *dest)
+{
+	struct time_t tim;
+	struct tm t;
+	memset(&t, 0, sizeof(t));
+	if(::localtime_r((const time_t*)&tim, &t) == NULL)
+	{
+		dest[0] = '\0';
+		return NULL;
+	}
+	sprintf(dest, "%04d%02d%02d%02d%02d%02d", r.tm_year+1900, r.tm_mon+1, r.tm_mday,
+			r.tm_hour, r.tm_min, r.tm_sec);
+	return dest;
+}
 std::string CTime::getShortTime()
 {
 	if(m_time.size())
