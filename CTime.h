@@ -7,123 +7,133 @@
 #include <stddef.h>
 #include <iomanip>
 #include<signal.h>
-
+#include <string>
+#include <time.h>
+#include <stdlib.h>
+using namespace std;
 //普通时间类，以后根据情况扩展
+
 class CTime
 {
 public:
     CTime();
-	CTime(std::string tim);
-    virtual ~CTime();
-	std::string getTime();
-	long long getTime();
-	std::string getShortTime();
+	CTime(const CTime& ctime);
+	CTime(const time_t& tim);
+	CTime(const struct tm &tmvar);
+    virtual ~CTime(){}
 
-	char* timeToStr(char *dest);
-	void Start(){ m_start = currentMillions();}
-	void Stop(){ m_end = currentMillions();}
-	void Reset() {m_start = m_end = 0;}
-	void costTime();
-friend std::ostream& operator<<(std::ostream& os, CTime& tim);
+	CTime operator=(const CTime &ctime)
+	{
+		if(this != &ctime)
+		{
+			this->tm_ = ctime.tm_;
+			this->time_ = ctime.time_;
+		}
+		return *this;
+	}
+	CTime operator-(const CTime &ctime)
+	{
+		return CTime(this->time_ - ctime.time_);
+	}
+	CTime operator+(const CTime& ctime)
+	{
+		return CTime(this->time_ + ctime.time_);
+	}
+	int getYear() const { return tm_.tm_year;}
+	int getMon()  const { return tm_.tm_mon; }
+	int getMday() const { return tm_.tm_mday; }
+	int getWday() const { return tm_.tm_wday;}
+	int getYday() const { return tm_.tm_yday;}
+	int getHour() const { return tm_.tm_hour;}
+	int getMin()  const { return tm_.tm_min; }
+	int getSec()  const { return tm_.tm_sec; }
+
+	void setYear(int year);
+	void setMon(int mon);
+	void setMday(int mday);
+	void setHour(int hour);
+	void setMin(int min);
+	void setSec(int sec);
+    void updateTime();
+	void updateTime(time_t tim);
+	string timeToStr();
+	time_t timeSec() const
+	{
+		return this->time_;
+	}
 private:
-	unsigned long currentMillions()
-	{
-		struct timeb stim;
-		ftime(&stim);
-		return stim.time*1000+stim.millitm;
-	}
-
-    void timeToStr(char* buf)
-	{
-		time_t ti = time(NULL);
-		strftime(buf, 30, "%Y-%m-%d %H:%M:%S", localtime(&ti));
-	}
-	std::string m_time; //reserve the time
-	unsigned long m_start, m_end;
+	struct tm tm_;
+	time_t time_;
 };
-
 
 CTime::CTime()
 {
-	char buf[30]={'\0'};
-	timeToStr(buf);
-	m_time = std::string(buf);	
+	this->time_ = time(NULL);
+	localtime_r(&this->time_, &this->tm_);	
+}
+CTime::CTime(const CTime& ctime)
+{
+	this->time_ = ctime.time_;
+	this->tm_ = ctime.tm_;
+}
+CTime::CTime(const time_t& tim)
+{
+	time_ = tim;
+	localtime_r(&time_, &tm_);
+}
+CTime::CTime(const struct tm &tmvar)
+{
+	this->tm_ = tmvar;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setYear(int year)
+{
+	this->tm_.tm_year = year;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setMon(int mon)
+{
+	this->tm_.tm_mon = mon;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setMday(int mday)
+{
+	this->tm_.tm_mday = mday;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setHour(int hour)
+{
+	this->tm_.tm_hour = hour;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setMin(int min)
+{
+	this->tm_.tm_min = min;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::setSec(int sec)
+{
+	this->tm_.tm_sec = sec;
+	this->time_ = mktime(&this->tm_);
+}
+void CTime::updateTime()
+{
+	this->time_ = time(NULL);
+	localtime_r(&this->time_, &this->tm_);
+}
+void CTime::updateTime(time_t tim)
+{
+	this->time_ = tim;
+	localtime_r(&this->time_, &this->tm_);
 }
 
-CTime::CTime(std::string tim)
+string CTime::timeToStr()
 {
-	if(tim.size() == 0)
-	{
-		char buf[30];
-        timeToStr(buf);
-		m_time = buf;
-	}
-	else
-	{
-		m_time = tim;
-	}
+	char buf[20];
+	snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d", this->tm_.tm_year+1900, this->tm_.tm_mon+1, this->tm_.tm_mday, this->tm_.tm_hour, this->tm_.tm_min, this->tm_.tm_sec);
+	return string(buf);
 }
 
-CTime::~CTime()
-{}
-std::string CTime::getTime()
-{
-	return m_time;
-}
-
-long long CTime::getTime()
-{
-	struct timeval tim;
-	gettimeofday(&tim, NULL);
-	return (static_cast<long long>(tim.tv_sec*1000000 + tim.tv_usec));
-}
-char* CTime::timeToStr(char *dest)
-{
-	struct time_t tim;
-	struct tm t;
-	memset(&t, 0, sizeof(t));
-	if(::localtime_r((const time_t*)&tim, &t) == NULL)
-	{
-		dest[0] = '\0';
-		return NULL;
-	}
-	sprintf(dest, "%04d%02d%02d%02d%02d%02d", r.tm_year+1900, r.tm_mon+1, r.tm_mday,
-			r.tm_hour, r.tm_min, r.tm_sec);
-	return dest;
-}
-std::string CTime::getShortTime()
-{
-	if(m_time.size())
-	{
-		return m_time.substr(0, m_time.find_first_of(' '));
-	}
-	else
-	{
-		char buf[30];
-        timeToStr(buf);
-		return std::string(buf);
-	}
-}
-
-void CTime::costTime()
-{
-	unsigned long diffTime = m_end - m_start;
-	if (diffTime < 1000)
-	{
-		cout << "It take you " << diffTime << " milliseconds" << endl;
-	}
-	else
-	{
-		unsigned long secs  = diffTime / 1000;
-		unsigned long msecs = diffTime % 1000;
-		cout << "It take you " << secs << " seconds, " << " " << msecs << " milliseconds." << endl;        
-	}
-}
-std::ostream& operator<<(std::ostream& os, CTime& tim)
-{
-	os <<tim.m_time;
-	return os;
-}
 
 //专门设置定时任务类
 class CTimeTask
@@ -139,14 +149,14 @@ public:
 		evp.sigev_value.sival_ptr = &timeID;
 		if(::timer_create(CLOCK_REALTIME, &evp, &timeID) ==-1 )  
 		{  
-			cout << "timer create err" << endl;  
+			cout << "create timer err" << endl;  
 			return;  
 		}  
 	}
     virtual ~CTimeTask()
 	{}
 
-    int excuteTask(int sec, int nsec, func onFunc)
+    int excuteTask(int msec, func onFunc, int mode = 1)
 	{
 		struct sigaction sigac;  
 		sigemptyset(&sigac.sa_mask);  
@@ -154,13 +164,20 @@ public:
 		sigac.sa_sigaction = onFunc;  
 		sigaction(SIGRTMAX, &sigac, NULL);  
      
-		struct itimerspec it;    
-		it.it_interval.tv_sec = sec;    
-		it.it_interval.tv_nsec = nsec;    
-		it.it_value.tv_sec = sec;    
-		it.it_value.tv_nsec = nsec;  
-  
-		if(::timer_settime(timeID, 0, &it, NULL) == -1)  
+		struct itimerspec it;
+		it.it_value.tv_sec = msec/1000;    
+		it.it_value.tv_nsec = (msec%1000)*1000*1000;  
+		if(mode == 1) //周期模式
+		{
+			it.it_interval.tv_sec = it.it_value.tv_sec;    
+			it.it_interval.tv_nsec = it.it_value.tv_nsec;	
+		}
+		else
+		{
+			it.it_interval.tv_sec = 0;    
+			it.it_interval.tv_nsec = 0;				
+		}
+		if(::timer_settime(timeID, 0, &it, NULL) != 0)  
 		{  
 			cout << "set time task err" << endl;  
 			::timer_delete(timeID);  
@@ -173,6 +190,7 @@ public:
 			timeTask = new CTimeTask();
 		return timeTask;
 	}
+	timer_t getTimeID() { return timeID; }
 private:
     timer_t timeID;  
     struct sigevent evp;
@@ -492,11 +510,9 @@ string CDate::GetYear(string strDate)
 {
     string strCur = strDate.substr(0, 4);
     int year = atoi(strCur.c_str());
-    if(year < 2004)
-    {
-		strCur = CVariant().AsDateWithDefault().substr(0,4);
-    }
-    return strCur;
+	char buf[5];
+	sprintf(buf, "%d", year);
+    return string(buf);
 }
 
 /************************************************************************
@@ -513,23 +529,10 @@ string CDate::GetYearMonth(string strDate)
 {
     int nYear, nMonth;
     string strCur;
-
-    strCur = strDate.substr(0, 4);
-    int year = atoi(strCur.c_str());
-    if(year < 2003)
-    {
-		strCur = CVariant().AsDateWithDefault().substr(0,4)+"_"+CVariant().AsDateWithDefault().substr(5,2);
-    }
-    
     if(sscanf(strDate.c_str(), "%04d-%02d", &nYear, &nMonth) == 2)
     {
         strCur = strDate.substr(0, 4)+"_"+strDate.substr(5,2);
-    }
-    else
-    {
-        // 格式不正确，返回当前月截止日期
-        strCur = CVariant().AsDateWithDefault().substr(0,4)+"_"+CVariant().AsDateWithDefault().substr(5,2);
-    }   
+    }  
     
     return strCur;
 }
@@ -556,11 +559,6 @@ string CDate::GetMonthEnd(string strDate)
     else if(sscanf(strDate.c_str(), "%04d/%02d", &nYear, &nMonth) == 2)
     {
         // OK，得到月和年
-    }
-    else
-    {
-        // 格式不正确，返回当前月截止日期
-        return GetMonthEnd(CVariant().AsDateWithDefault());
     }
 
     // 计算下月一日
