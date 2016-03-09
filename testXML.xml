@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="ISO-8859-1"?>
+<configuration>
+	<dbsource>
+		<username>haha</username>
+		<passwd>bbb</passwd>
+		<bool>true</bool>
+	</dbsource>
+	<tables>
+	  <table name="aa" type="a1" />
+	  <table name="bb" type="b2" />
+	</tables>
+</configuration>

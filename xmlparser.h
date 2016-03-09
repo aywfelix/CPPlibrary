@@ -159,10 +159,9 @@ typedef struct XMLDLLENTRY XMLNode
     //  - openFileHelper
     //  - createXMLTopNode
     XMLNode(struct XMLNodeDataTag *pParent, XMLSTR lpszName, char isDeclaration);
-    XMLNode(struct XMLNodeDataTag *p);
 
   public:
-
+    XMLNode(struct XMLNodeDataTag *p);
     // You can create your first instance of XMLNode with these 4 functions:
     // (see complete explanation of parameters below)
 
