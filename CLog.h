@@ -4,20 +4,27 @@
 #include <iostream>
 #include <stdarg.h>
 #include <fstream>
-
-#define LOGPATH "./common.log"
+#include <sys/types.h> 
+#include <sys/stat.h>
+//#define LOGPATH "./common.log"
 #define BUFSIZE 2048
 class CLog
 {
 public:
-	CLog(){}
+	CLog()
+	{
+		ctime.updateTime();
+		ctime.setMday(ctime.getMday() + 1);
+		ctime.setHour(0);
+		ctime.setMin(0);
+		ctime.setSec(0);
+		starttime = ctime.timeSec();
+	}
 	virtual ~CLog()
 	{
-		if(fout)
-		    fout.close();
 	}
 	static CLog* getInstance();
-	void Init(const char* path, int level);
+	bool Init(const char* path);
 
 	void Error(char *pFmt, ...);
     void Info(char  *pFmt, ...);
@@ -25,18 +32,20 @@ public:
     void Warn(char  *pFmt, ...);     
 
     void Log(int level, const char * loginfo);
-	void setLogFile(const char* path);
 private:
-
+	bool checkLogTime();
 	static CLog *m_log;
 	CLog(const CLog& clog);
 	CLog& operator=(const CLog& clog);
 
 	Mutex m_mutex;
 	int m_logLevel;
-	const char* m_logPath;
-	std::ofstream fout;	
+	char m_logpath[100];
+	char m_logfile[200];
+	int logHandle;
 	enum { LOG_ERROR = 0, LOG_INFO, LOG_WARN, LOG_DEBUG};
+	CTime ctime;
+	time_t starttime;
 };
 CLog* CLog::m_log = NULL;
 CLog* CLog::getInstance()
@@ -48,34 +57,42 @@ CLog* CLog::getInstance()
 	return m_log;
 }
 
-void CLog::Init(const char* path, int level)
+bool CLog::Init(const char* path)
 {
-	m_logPath = path;
-	m_logLevel = level;
+	if(mkdir(path, 0755) == -1)
+	{
+		printf("create log path failed\n");
+		return false;
+	}
+	strcpy(m_logpath, path);
+	ctime.updateTime();
+	string timestr = ctime.timeToDay();
+	sprintf(m_logfile, "%s/%s.log", m_logpath, timestr.c_str());
+	logHandle = open(m_logfile, O_CREAT|O_RDWR|O_APPEND, 644);
+	if(logHandle < 0)
+	{
+		printf("create log file failed\n");
+		return false;
+	}
+	return true;
 }
 
 void CLog::Log(int level, const char * loginfo)
 {
-	const char *infos[4] = {"ERROR: ", "INFO: ", "WARN : ", "DEBUG: "};
+	const char *infos[4] = {"ERROR", "INFO", "WARN", "DEBUG"};
 	m_mutex.Lock();
-	CTime time;
-	//std::ofstream fout(m_logPath, std::ios::app|std::ios::out);
-	if(fout)
+	checkLogTime();
+	char logbuf[256];
+	if(logHandle > 0)
 	{
-		fout<<"["<<time<<"]"<<infos[level]<<loginfo<<std::endl;
-		if(fout.tellp() > 2*1024*1024)
+		ctime.updateTime();
+		sprintf(logbuf, "[%s]%s :%s\n", ctime.timeToStr().c_str(), infos[level], loginfo);
+		int handle = write(this->logHandle, logbuf, strlen(logbuf));
+        if(handle < 0)
 		{
-			fout.close();
-			std::string logname = m_logPath + time.getTime(); //back the log file
-			rename(m_logPath, logname.c_str());
+			printf("write log file err\n");
 		}
 	}
-	else
-	{
-		std::cout << time << infos[0] <<"open file failed \n"<<strerror(errno) << std::endl;
-	}
-	fout.flush();
-	//if(fout) fout.close();
 	m_mutex.UnLock();
 }
 
@@ -119,8 +136,28 @@ void CLog::Warn(char  *pFmt, ...)
 	Log(LOG_WARN, Buf);	
 }
 
-void CLog::setLogFile(const char* path)
+
+bool CLog::checkLogTime()
 {
-	m_logPath = path;
-	fout.open(m_logPath, std::ios::app|std::ios::out);
+	if(difftime(time(NULL), starttime) >= 0)
+	{
+		memset(this->m_logfile, 0, sizeof(this->m_logfile));
+		ctime.updateTime();
+		string timestr = ctime.timeToDay();
+		sprintf(m_logfile, "%s/%s.log", m_logpath, timestr.c_str());
+		int handle = open(m_logfile, O_CREAT | O_RDWR | O_APPEND, 644);
+        if(handle > 0)
+		{
+			close(logHandle);
+			this->logHandle = handle;
+		}
+		ctime.setMday(ctime.getMday()+1);
+		ctime.setHour(0);
+		ctime.setMin(0);
+		ctime.setSec(0);
+		this->starttime = ctime.timeSec();
+		return true;
+	}
+
+	return false;
 }

@@ -4,6 +4,8 @@
 #include <unistd.h>
 #include <cstdio>
 #include <string.h>
+#include <sys/time.h>
+
 class Mutex  
 {  
 public:  
@@ -25,7 +27,7 @@ public:
     explicit CondVar(Mutex* mu);  
     virtual ~CondVar();  
       
-    void Wait();  
+    void Wait(int milliseconds = 0);  
     void Signal();  
     void SignalAll();  
 private:  
@@ -84,7 +86,7 @@ CondVar::~CondVar()
     MutexErr("destroy cond", pthread_cond_destroy(&m_cond));  
 }  
   
-void CondVar::Wait(int milliseconds = 0)  
+void CondVar::Wait(int milliseconds)  
 {
 	if(milliseconds == 0)
 	{
@@ -104,7 +106,7 @@ void CondVar::Wait(int milliseconds = 0)
 
 		abstime.tv_sec = static_cast<int>(us / static_cast<long long>(1000000));
 		abstime.tv_nsec = static_cast<int>(us % static_cast<long long>(1000000)) * 1000;
-		MutexErr("wait time cond", pthread_cond_wait(&m_cond, &m_mu->m_mutex, &abstime));
+		MutexErr("wait time cond", pthread_cond_wait(&m_cond, &m_mu->m_mutex));
 	}
 }  
   

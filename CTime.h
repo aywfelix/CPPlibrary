@@ -57,6 +57,7 @@ public:
     void updateTime();
 	void updateTime(time_t tim);
 	string timeToStr();
+	string timeToDay();
 	time_t timeSec() const
 	{
 		return this->time_;
@@ -133,7 +134,12 @@ string CTime::timeToStr()
 	snprintf(buf, sizeof(buf), "%04d-%02d-%02d %02d:%02d:%02d", this->tm_.tm_year+1900, this->tm_.tm_mon+1, this->tm_.tm_mday, this->tm_.tm_hour, this->tm_.tm_min, this->tm_.tm_sec);
 	return string(buf);
 }
-
+string CTime::timeToDay()
+{
+	char buf[20];
+	sprintf(buf, "%04d-%02d-%02d", this->tm_.tm_year+1900, this->tm_.tm_mon+1, this->tm_.tm_mday);
+	return string(buf);
+}
 
 //专门设置定时任务类
 class CTimeTask
