@@ -335,33 +335,50 @@ bool CSocket::setAddr(const char* addr, int port)
 	}
 	else
 	{
-		const char* p = addr;
-		char c;
-		bool isIp = true;
-		while((c=*p++)&& (c !='\0'))
+		unsigned long inaddr;
+		struct hostent* hp;
+		inaddr = inet_addr(addr);
+		if(inaddr != INADDR_NONE)
 		{
-			if((c !='.') && !(c>='0' && c<='9'))
-			{
-				isIp = false;
-				break;
-			}
-		}
-		if(isIp)
-		{
-			sockAddr.sin_addr.s_addr = inet_addr(addr);
-			return true;
+			memcpy(&sockAddr.sin_addr, &inaddr, sizeof(inaddr));
 		}
 		else
 		{
-			struct hostent *host = gethostbyname(addr);
-			if(host != NULL)
+			hp = gethostbyname(addr);
+			if(hp == NULL)
 			{
-				memcpy(&(sockAddr.sin_addr), *(host->h_addr_list), sizeof(struct in_addr));
+				return false;
 			}
+			memcpy(&sockAddr.sin_addr, hp->h_addr, hp->h_length);
 		}
+		// const char* p = addr;
+		// char c;
+		// bool isIp = true;
+		// while((c=*p++)&& (c !='\0'))
+		// {
+		// 	if((c !='.') && !(c>='0' && c<='9'))
+		// 	{
+		// 		isIp = false;
+		// 		break;
+		// 	}
+		// }
+		// if(isIp)
+		// {
+		// 	sockAddr.sin_addr.s_addr = inet_addr(addr);
+		// 	return true;
+		// }
+		// else
+		// {
+		// 	struct hostent *host = gethostbyname(addr);
+		// 	if(host != NULL)
+		// 	{
+		// 		memcpy(&(sockAddr.sin_addr), *(host->h_addr_list), sizeof(struct in_addr));
+		// 	}
+		// }
 	}
-	
-	return false;
+
+	return true;
+	//return false;
 }
 //tcp client
 class CCliSocket
